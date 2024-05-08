@@ -1,14 +1,20 @@
-import { Connection, ConnectionOptions } from 'mongoose';
+import { Connection, ConnectOptions } from 'mongoose';
 import * as mongoose from 'mongoose';
 
 export class DalService {
   connection: Connection;
 
-  async connect(url: string, config: ConnectionOptions = {}) {
+  async connect(url: string, config: ConnectOptions = {}) {
+    const baseConfig: ConnectOptions = {
+      maxPoolSize: +process.env.MONGO_MAX_POOL_SIZE || 500,
+      minPoolSize: +process.env.MONGO_MIN_POOL_SIZE || 10,
+      autoIndex: process.env.AUTO_CREATE_INDEXES === 'true',
+      maxIdleTimeMS: 1000 * 60 * 10,
+    };
+
     const instance = await mongoose.connect(url, {
+      ...baseConfig,
       ...config,
-      autoReconnect: true,
-      useCreateIndex: true,
     });
 
     this.connection = instance.connection;

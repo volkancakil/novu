@@ -1,12 +1,25 @@
-import { IsNumber, IsPositive } from 'class-validator';
-import { CommandHelper } from '../../../shared/commands/command.helper';
+import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
+
 import { EnvironmentWithSubscriber } from '../../../shared/commands/project.command';
+import { StoreQuery } from '../../queries/store.query';
 
 export class GetNotificationsFeedCommand extends EnvironmentWithSubscriber {
-  static create(data: GetNotificationsFeedCommand) {
-    return CommandHelper.create<GetNotificationsFeedCommand>(GetNotificationsFeedCommand, data);
-  }
+  @IsNumber()
+  @IsOptional()
+  page = 0;
 
   @IsNumber()
-  page: number;
+  @IsOptional()
+  limit = 10;
+
+  @IsOptional()
+  @IsArray()
+  feedId?: string[];
+
+  @IsOptional()
+  query: StoreQuery;
+
+  @IsOptional()
+  @IsString()
+  payload?: string;
 }

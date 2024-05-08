@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
-import { BoltGradient } from '../../../design-system/icons';
-import { colors, Text } from '../../../design-system';
+import { BoltGradient, colors, Text } from '@novu/design-system';
 
 export function CardStatusBar({ active }: { active: boolean }) {
+  const iconProps = active ? { fill: colors.success } : {};
+
   return (
     <Wrapper>
       <ActiveWrapper active={active}>
-        <BoltGradient />
-        <StyledText data-test-id="card-status-bar-active">{active ? 'Active' : 'Not Active'}</StyledText>
+        <BoltGradient {...iconProps} />
+        <StyledText data-test-id="card-status-bar-active">{active ? 'Active' : 'Disabled'}</StyledText>
       </ActiveWrapper>
     </Wrapper>
   );
@@ -15,7 +16,6 @@ export function CardStatusBar({ active }: { active: boolean }) {
 
 const StyledText = styled(Text)`
   display: inline-block;
-
   margin: 0 6px;
 `;
 
@@ -29,16 +29,23 @@ const ActiveWrapper = styled(SideElementBase)<{ active: boolean }>`
     return !active
       ? `
       ${StyledText},
-      svg {
-        color: ${colors.B40};
-        fill: ${colors.B40};
-      }  
+      {
+       color: ${colors.B40};
+        svg {
+          fill: ${colors.B40};
+        }  
+      }
     `
       : `${StyledText},
-      svg {
-        color: red;
-        fill: url(#paint0_linear_1062_464);
-      }`;
+      {
+      background: ${colors.success};
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+        svg {
+          fill: url(#paint0_linear_1062_464);
+        }
+      }
+      `;
   }}
 `;
 

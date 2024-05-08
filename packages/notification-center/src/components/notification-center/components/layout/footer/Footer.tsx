@@ -1,22 +1,24 @@
 /* eslint-disable max-len */
-import React, { useContext } from 'react';
-import styled from 'styled-components';
-import { colors } from '../../../../../shared/config/colors';
-import { ThemeContext } from '../../../../../store/novu-theme.context';
+import React from 'react';
+import { css, cx } from '@emotion/css';
+
+import { useNovuTheme, useTranslations } from '../../../../../hooks';
+import { INovuTheme } from '../../../../../store/novu-theme.context';
+import { useStyles } from '../../../../../store/styles';
 
 export function Footer() {
-  const { colorScheme } = useContext(ThemeContext);
-
-  const textColor = colorScheme === 'light' ? 'black' : 'white';
+  const { theme } = useNovuTheme();
+  const { t } = useTranslations();
+  const [footerStyles, footerTitleStyles] = useStyles(['footer.root', 'footer.title']);
 
   return (
-    <FooterWrapper>
-      <Text colorScheme={colorScheme}>Powered By </Text>
+    <div className={cx('nc-footer', footerClassName, css(footerStyles))}>
+      <span className={cx(footerPoweredByClassName(theme), css(footerTitleStyles))}>{t('poweredBy')} </span>
       <a
         rel="noreferrer"
         target="_blank"
         href="https://novu.co?utm_source=in-app-widget"
-        style={{ display: 'flex', color: textColor }}
+        style={{ display: 'flex', color: theme.footer.logoTextColor }}
       >
         <svg width="107" height="16" viewBox="0 0 1049 300" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -56,15 +58,16 @@ export function Footer() {
           </defs>
         </svg>
       </a>
-    </FooterWrapper>
+    </div>
   );
 }
-const Text = styled.div<{ colorScheme }>`
-  color: ${({ colorScheme }) => (colorScheme === 'light' ? colors.B70 : colors.B40)};
+const footerPoweredByClassName = (novuTheme: INovuTheme) => css`
+  color: ${novuTheme.footer.logoPrefixFontColor};
   font-size: 10px;
   font-weight: 400;
 `;
-const FooterWrapper = styled.div`
+
+const footerClassName = css`
   text-align: center;
   border-radius: 7px;
   margin-top: 10px;

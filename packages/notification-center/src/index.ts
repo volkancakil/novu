@@ -1,54 +1,20 @@
-import { IMessage, ISubscriberJwt, IOrganizationEntity } from '@novu/shared';
+export type { IStoreQuery } from '@novu/client';
+export type { IUserPreferenceSettings } from '@novu/client';
+export { ChannelTypeEnum, ChannelCTATypeEnum, MessageActionStatusEnum, ButtonTypeEnum } from '@novu/shared';
 
 export * from './components';
-export * from './hooks/use-unseen-count.hook';
-export * from './hooks/use-socket.hook';
-export * from './hooks/use-notifications.hook';
-export { IMessage } from '@novu/shared';
+export * from './hooks';
 
-export interface IAuthContext {
-  applyToken: (token: string | null) => void;
-  setUser: (profile: ISubscriberJwt) => void;
+export * from './store/novu-theme-provider.context';
+export * from './i18n/lang';
+export type { INovuPopoverTheme } from './store/novu-theme.context';
+export type { INotificationCenterStyles } from './store/styles';
 
-  token: string | null;
-  user: ISubscriberJwt | null;
-  isLoggedIn: boolean;
-}
+export { SubscriberPreference } from './components/notification-center/components/user-preference/SubscriberPreference';
 
-export interface ISocket {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on: (eventName: string, callback: (data: any) => void) => void;
-  off: (eventName: string) => void;
-}
+export { colors } from './shared/config/colors';
+export type { ColorScheme } from './shared/config/colors';
+export { getDefaultTheme, getDefaultBellColors } from './utils/defaultTheme';
+export { getStyleByPath } from './utils/styles';
 
-export interface ISocketContext {
-  socket: ISocket | null;
-}
-
-export interface IUserInfo {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-}
-
-export interface INotificationCenterContext {
-  onUrlChange: (url: string) => void;
-  onNotificationClick: (notification: IMessage) => void;
-  onUnseenCountChanged: (unseenCount: number) => void;
-  isLoading: boolean;
-  header: () => JSX.Element;
-  footer: () => JSX.Element;
-}
-
-export interface INovuProviderContext {
-  backendUrl?: string;
-  subscriberId?: string;
-  applicationIdentifier?: string;
-  initialized: boolean;
-  socketUrl?: string;
-  onLoad: (data: { organization: IOrganizationEntity }) => void;
-  subscriberHash: string;
-}
-
-export declare type ColorScheme = 'light' | 'dark';
+export * from './shared/interfaces';

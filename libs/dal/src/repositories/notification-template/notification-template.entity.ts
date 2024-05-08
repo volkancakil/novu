@@ -1,9 +1,30 @@
-import { BuilderFieldOperator, BuilderFieldType, BuilderGroupValues } from '@novu/shared';
-import { MessageTemplateEntity } from '../message-template';
-import { NotificationGroupEntity } from '../notification-group';
+import { Schema, Types } from 'mongoose';
+import {
+  FilterParts,
+  BuilderFieldType,
+  BuilderGroupValues,
+  IPreferenceChannels,
+  IWorkflowStepMetadata,
+  NotificationTemplateCustomData,
+  IStepVariant,
+  IMessageFilter,
+  INotificationTrigger,
+  TriggerTypeEnum,
+  INotificationTriggerVariable,
+  ITriggerReservedVariable,
+  INotificationTemplate,
+  INotificationTemplateStep,
+  IMessageTemplate,
+  NotificationTemplateTypeEnum,
+} from '@novu/shared';
 
-export class NotificationTemplateEntity {
-  _id?: string;
+import { NotificationGroupEntity } from '../notification-group';
+import type { OrganizationId } from '../organization';
+import type { EnvironmentId } from '../environment';
+import type { ChangePropsValueType } from '../../types';
+
+export class NotificationTemplateEntity implements INotificationTemplate {
+  _id: string;
 
   name: string;
 
@@ -13,15 +34,19 @@ export class NotificationTemplateEntity {
 
   draft: boolean;
 
+  preferenceSettings: IPreferenceChannels;
+
+  critical: boolean;
+
   tags: string[];
 
   steps: NotificationStepEntity[];
 
-  _organizationId: string;
+  _organizationId: OrganizationId;
 
   _creatorId: string;
 
-  _environmentId: string;
+  _environmentId: EnvironmentId;
 
   triggers: NotificationTriggerEntity[];
 
@@ -35,43 +60,80 @@ export class NotificationTemplateEntity {
 
   deletedBy: string;
 
+  createdAt?: string;
+
+  updatedAt?: string;
+
   readonly notificationGroup?: NotificationGroupEntity;
+
+  isBlueprint: boolean;
+
+  blueprintId?: string;
+
+  data?: NotificationTemplateCustomData;
+
+  type?: NotificationTemplateTypeEnum;
+
+  rawData?: any;
+
+  payloadSchema?: any;
 }
 
-export class NotificationTriggerEntity {
-  type: 'event';
+export type NotificationTemplateDBModel = ChangePropsValueType<
+  Omit<NotificationTemplateEntity, '_parentId'>,
+  '_environmentId' | '_organizationId' | '_creatorId' | '_notificationGroupId'
+> & {
+  _parentId?: Types.ObjectId;
+};
+
+export class NotificationTriggerEntity implements INotificationTrigger {
+  type: TriggerTypeEnum;
 
   identifier: string;
 
-  variables: {
-    name: string;
-  }[];
+  variables: INotificationTriggerVariable[];
 
-  subscriberVariables?: {
-    name: string;
-  }[];
+  subscriberVariables?: Pick<INotificationTriggerVariable, 'name'>[];
+
+  reservedVariables?: ITriggerReservedVariable[];
 }
 
-export class NotificationStepEntity {
+export class StepVariantEntity implements IStepVariant {
   _id?: string;
+
+  uuid?: string;
+
+  stepId?: string;
+
+  name?: string;
 
   _templateId: string;
 
-  template?: MessageTemplateEntity;
+  active?: boolean;
+
+  replyCallback?: {
+    active: boolean;
+    url: string;
+  };
+
+  template?: IMessageTemplate;
 
   filters?: StepFilter[];
+
+  _parentId?: string | null;
+
+  metadata?: IWorkflowStepMetadata;
+
+  shouldStopOnFail?: boolean;
 }
 
-export class StepFilter {
-  isNegated: boolean;
+export class NotificationStepEntity extends StepVariantEntity implements INotificationTemplateStep {
+  variants?: StepVariantEntity[];
+}
 
-  type: BuilderFieldType;
-
+export class StepFilter implements IMessageFilter {
+  isNegated?: boolean;
+  type?: BuilderFieldType;
   value: BuilderGroupValues;
-
-  children: {
-    field: string;
-    value: string;
-    operator: BuilderFieldOperator;
-  }[];
+  children: FilterParts[];
 }

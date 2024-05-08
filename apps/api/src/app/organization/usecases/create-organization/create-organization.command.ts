@@ -1,12 +1,26 @@
+import { IsDefined, IsEnum, IsOptional, IsString } from 'class-validator';
+
+import { JobTitleEnum, ProductUseCases } from '@novu/shared';
+
 import { AuthenticatedCommand } from '../../../shared/commands/authenticated.command';
-import { CommandHelper } from '../../../shared/commands/command.helper';
 
 export class CreateOrganizationCommand extends AuthenticatedCommand {
-  static create(data: CreateOrganizationCommand) {
-    return CommandHelper.create(CreateOrganizationCommand, data);
-  }
+  @IsString()
+  @IsDefined()
+  public readonly name: string;
 
+  @IsString()
+  @IsOptional()
   public readonly logo?: string;
 
-  public readonly name: string;
+  @IsOptional()
+  @IsEnum(JobTitleEnum)
+  jobTitle?: JobTitleEnum;
+
+  @IsString()
+  @IsOptional()
+  domain?: string;
+
+  @IsOptional()
+  productUseCases?: ProductUseCases;
 }

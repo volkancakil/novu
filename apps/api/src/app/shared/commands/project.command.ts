@@ -1,6 +1,9 @@
 import { IsNotEmpty } from 'class-validator';
+import { BaseCommand } from './base.command';
 
-export abstract class EnvironmentWithUserCommand {
+export { BaseCommand };
+
+export abstract class EnvironmentWithUserCommand extends BaseCommand {
   @IsNotEmpty()
   readonly environmentId: string;
 
@@ -11,7 +14,7 @@ export abstract class EnvironmentWithUserCommand {
   readonly userId: string;
 }
 
-export abstract class EnvironmentWithSubscriber {
+export abstract class EnvironmentWithSubscriber extends BaseCommand {
   @IsNotEmpty()
   readonly environmentId: string;
 
@@ -22,7 +25,7 @@ export abstract class EnvironmentWithSubscriber {
   readonly subscriberId: string;
 }
 
-export abstract class EnvironmentCommand {
+export abstract class EnvironmentCommand extends BaseCommand {
   @IsNotEmpty()
   readonly environmentId: string;
 

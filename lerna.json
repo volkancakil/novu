@@ -1,15 +1,12 @@
 {
-  "npmClient": "yarn",
-  "packages": [
-    "apps/*",
-    "libs/*",
-    "packages/*",
-    "providers/*"
-  ],
+  "npmClient": "pnpm",
+  "useNx": true,
+  "useWorkspaces": true,
+  "packages": ["apps/*", "libs/*", "packages/*", "enterprise/packages/*", "enterprise/packages/*/*", "providers/*"],
   "command": {
     "publish": {
       "message": "chore(release): publish - ci skip"
     }
   },
-  "version": "0.4.2"
+  "version": "0.24.1"
 }

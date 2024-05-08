@@ -1,30 +1,57 @@
-import { Injectable } from '@nestjs/common';
-import { EnvironmentRepository, SubscriberEntity } from '@novu/dal';
-import { AuthService } from '../../../auth/services/auth.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { EnvironmentRepository } from '@novu/dal';
+import { ChannelTypeEnum, InAppProviderIdEnum } from '@novu/shared';
+import {
+  AnalyticsService,
+  LogDecorator,
+  CreateSubscriber,
+  CreateSubscriberCommand,
+  SelectIntegrationCommand,
+  SelectIntegration,
+  AuthService,
+  createHash,
+  decryptApiKey,
+} from '@novu/application-generic';
+
 import { ApiException } from '../../../shared/exceptions/api.exception';
-import { CreateSubscriber, CreateSubscriberCommand } from '../../../subscribers/usecases/create-subscriber';
 import { InitializeSessionCommand } from './initialize-session.command';
-import { createHmac } from 'crypto';
+
+import { SessionInitializeResponseDto } from '../../dtos/session-initialize-response.dto';
 
 @Injectable()
 export class InitializeSession {
   constructor(
     private environmentRepository: EnvironmentRepository,
     private createSubscriber: CreateSubscriber,
-    private authService: AuthService
+    private authService: AuthService,
+    private selectIntegration: SelectIntegration,
+    private analyticsService: AnalyticsService
   ) {}
 
-  async execute(command: InitializeSessionCommand): Promise<{
-    token: string;
-    profile: Partial<SubscriberEntity>;
-  }> {
+  @LogDecorator()
+  async execute(command: InitializeSessionCommand): Promise<SessionInitializeResponseDto> {
     const environment = await this.environmentRepository.findEnvironmentByIdentifier(command.applicationIdentifier);
 
     if (!environment) {
       throw new ApiException('Please provide a valid app identifier');
     }
 
-    if (environment.widget.notificationCenterEncryption) {
+    const inAppIntegration = await this.selectIntegration.execute(
+      SelectIntegrationCommand.create({
+        environmentId: environment._id,
+        organizationId: environment._organizationId,
+        userId: command.subscriberId,
+        channelType: ChannelTypeEnum.IN_APP,
+        providerId: InAppProviderIdEnum.Novu,
+        filterData: {},
+      })
+    );
+
+    if (!inAppIntegration) {
+      throw new NotFoundException('In app integration could not be found');
+    }
+
+    if (inAppIntegration.credentials.hmac) {
       validateNotificationCenterEncryption(environment, command);
     }
 
@@ -37,8 +64,13 @@ export class InitializeSession {
       email: command.email,
       phone: command.phone,
     });
-
     const subscriber = await this.createSubscriber.execute(commandos);
+
+    this.analyticsService.mixpanelTrack('Initialize Widget Session - [Notification Center]', '', {
+      _organization: environment._organizationId,
+      environmentName: environment.name,
+      _subscriber: subscriber._id,
+    });
 
     return {
       token: await this.authService.getSubscriberWidgetToken(subscriber),
@@ -53,8 +85,8 @@ export class InitializeSession {
 }
 
 function validateNotificationCenterEncryption(environment, command: InitializeSessionCommand) {
-  const hmacHash = createHmac('sha256', environment.apiKeys[0].key).update(command.subscriberId).digest('hex');
-
+  const key = decryptApiKey(environment.apiKeys[0].key);
+  const hmacHash = createHash(key, command.subscriberId);
   if (hmacHash !== command.hmacHash) {
     throw new ApiException('Please provide a valid HMAC hash');
   }

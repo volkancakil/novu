@@ -1,50 +1,103 @@
-export interface ISubscriberPayload {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  avatar?: string;
-  [key: string]: string | string[] | boolean | number | undefined;
+import {
+  ChannelTypeEnum,
+  IChannelCredentials,
+  ISubscriberPayload,
+  ButtonTypeEnum,
+  MessageActionStatusEnum,
+  ISubscribersDefine,
+  PreferenceLevelEnum,
+} from '@novu/shared';
+
+export {
+  ISubscriberPayload,
+  ButtonTypeEnum,
+  MessageActionStatusEnum,
+  PreferenceLevelEnum,
+};
+
+export interface ISubscribers {
+  list(page: number, limit: number);
+  get(subscriberId: string);
+  identify(subscriberId: string, data: ISubscriberPayload);
+  bulkCreate(subscribers: ISubscribersDefine[]);
+  update(subscriberId: string, data: ISubscriberPayload);
+  delete(subscriberId: string);
+  setCredentials(
+    subscriberId: string,
+    providerId: string,
+    credentials: IChannelCredentials,
+    integrationIdentifier?: string
+  );
+  deleteCredentials(subscriberId: string, providerId: string);
+  /**
+   * @deprecated Use deleteCredentials instead
+   */
+  unsetCredentials(subscriberId: string, providerId: string);
+  updateOnlineStatus(subscriberId: string, online: boolean);
+  getPreference(subscriberId: string);
+  getGlobalPreference(subscriberId: string);
+  getPreferenceByLevel(subscriberId: string, level: PreferenceLevelEnum);
+  updatePreference(
+    subscriberId: string,
+    templateId: string,
+    data: IUpdateSubscriberPreferencePayload
+  );
+  updateGlobalPreference(
+    subscriberId: string,
+    data: IUpdateSubscriberGlobalPreferencePayload
+  );
+  getNotificationsFeed(
+    subscriberId: string,
+    params: IGetSubscriberNotificationFeedParams
+  );
+  getUnseenCount(subscriberId: string, seen: boolean);
+  /**
+   * deprecated use markMessageAs instead
+   */
+  markMessageSeen(subscriberId: string, messageId: string);
+  /**
+   * deprecated use markMessageAs instead
+   */
+  markMessageRead(subscriberId: string, messageId: string);
+  markMessageAs(subscriberId: string, messageId: string, mark: IMarkFields);
+  markMessageActionSeen(
+    subscriberId: string,
+    messageId: string,
+    type: string,
+    data: IMarkMessageActionFields
+  );
 }
 
-export interface ISubscribersDefine extends ISubscriberPayload {
-  subscriberId: string;
+export interface IUpdateSubscriberPreferencePayload {
+  channel?: {
+    type: ChannelTypeEnum;
+    enabled: boolean;
+  };
+  enabled?: boolean;
 }
 
-export enum ChannelTypeEnum {
-  EMAIL = 'email',
-  SMS = 'sms',
-  DIRECT = 'direct',
+export interface IUpdateSubscriberGlobalPreferencePayload {
+  preferences?: {
+    type: ChannelTypeEnum;
+    enabled: boolean;
+  }[];
+  enabled?: boolean;
+}
+export interface IGetSubscriberNotificationFeedParams {
+  page?: number;
+  limit?: number;
+  feedIdentifier?: string;
+  seen?: boolean;
+  read?: boolean;
+  payload?: Record<string, unknown>;
 }
 
-export type TriggerRecipientsTypeArray = string[] | ISubscribersDefine[];
-
-export type TriggerRecipientsTypeSingle = string | ISubscribersDefine;
-
-export type TriggerRecipientsType =
-  | TriggerRecipientsTypeSingle
-  | TriggerRecipientsTypeArray;
-
-export interface ITriggerPayloadOptions {
-  payload: ITriggerPayload;
-  to: TriggerRecipientsType;
+export interface IMarkFields {
+  seen?: boolean;
+  read?: boolean;
 }
 
-export interface ITriggerPayload {
-  attachments?: IAttachmentOptions[];
-  [key: string]:
-    | string
-    | string[]
-    | boolean
-    | number
-    | undefined
-    | IAttachmentOptions
-    | IAttachmentOptions[];
-}
-
-export interface IAttachmentOptions {
-  mime: string;
-  file: Buffer;
-  name?: string;
-  channels?: ChannelTypeEnum[];
+export interface IMarkMessageActionFields {
+  status: MessageActionStatusEnum;
+  payload?: Record<string, unknown>;
 }

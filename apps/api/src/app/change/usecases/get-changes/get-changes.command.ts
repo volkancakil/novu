@@ -1,13 +1,16 @@
-import { IsBoolean, IsDefined } from 'class-validator';
-import { CommandHelper } from '../../../shared/commands/command.helper';
+import { IsBoolean, IsDefined, IsNumber, IsOptional } from 'class-validator';
 import { EnvironmentWithUserCommand } from '../../../shared/commands/project.command';
 
 export class GetChangesCommand extends EnvironmentWithUserCommand {
-  static create(data: GetChangesCommand) {
-    return CommandHelper.create(GetChangesCommand, data);
-  }
-
   @IsDefined()
   @IsBoolean()
   promoted: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  page = 0;
+
+  @IsNumber()
+  @IsOptional()
+  limit = 10;
 }

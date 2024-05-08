@@ -1,12 +1,14 @@
-import { Loader as MantineLoader } from '@mantine/core';
-import { useTheme } from 'styled-components';
-import chroma from 'chroma-js';
-import { getLinearGradientColorStopValues } from '../../../shared/utils/getLinearGradientColorStopValues';
 import React from 'react';
+import { Loader as MantineLoader } from '@mantine/core';
+import { cx, css } from '@emotion/css';
+
+import { useNovuTheme } from '../../../hooks';
+import { useStyles } from '../../../store/styles';
 
 export const Loader = ({ color }: { color?: string }) => {
-  const theme: any = useTheme();
-  const loaderColor = color || theme.colors.main;
+  const { theme } = useNovuTheme();
+  const [loaderStyles] = useStyles(['loader.root']);
+  const loaderColor = color || theme.loaderColor;
 
   return (
     <div
@@ -18,13 +20,7 @@ export const Loader = ({ color }: { color?: string }) => {
         justifyContent: 'center',
       }}
     >
-      <MantineLoader
-        color={
-          loaderColor.indexOf('gradient') === -1
-            ? loaderColor
-            : chroma.average(getLinearGradientColorStopValues(loaderColor))
-        }
-      />
+      <MantineLoader className={cx('nc-loader', css(loaderStyles))} color={loaderColor} />
     </div>
   );
 };

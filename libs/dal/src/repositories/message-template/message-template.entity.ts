@@ -1,44 +1,71 @@
-import { ChannelCTATypeEnum, ChannelTypeEnum } from '@novu/shared';
+import {
+  StepTypeEnum,
+  IMessageCTA,
+  IActor,
+  IMessageTemplate,
+  EnvironmentId,
+  OrganizationId,
+  MessageTemplateContentType,
+} from '@novu/shared';
+import { JSONSchema7 } from 'json-schema';
 
-export class MessageTemplateEntity {
+import { IEmailBlock, ITemplateVariable } from './types';
+import type { ChangePropsValueType } from '../../types/helpers';
+
+export class MessageTemplateEntity implements IMessageTemplate {
   _id?: string;
 
-  _environmentId: string;
+  _environmentId: EnvironmentId;
 
-  _organizationId: string;
+  _organizationId: OrganizationId;
 
   _creatorId: string;
 
-  type: ChannelTypeEnum;
+  // TODO: Due a circular dependency I can't import LayoutId from Layout.
+  _layoutId?: string | null;
+
+  type: StepTypeEnum;
+
+  variables?: ITemplateVariable[];
 
   content: string | IEmailBlock[];
 
-  contentType?: 'editor' | 'customHtml';
+  contentType?: MessageTemplateContentType;
 
   active?: boolean;
 
   subject?: string;
 
+  title?: string;
+
   name?: string;
 
-  cta?: {
-    type: ChannelCTATypeEnum;
-    data: {
-      url?: string;
-    };
-  };
+  stepId?: string;
+
+  preheader?: string;
+
+  senderName?: string;
+
+  _feedId?: string;
+
+  cta?: IMessageCTA;
 
   _parentId?: string;
-}
 
-export class IEmailBlock {
-  type: 'button' | 'text';
+  actor?: IActor;
 
-  content: string;
+  deleted?: boolean;
 
-  url?: string;
+  inputs?: {
+    schema: JSONSchema7;
+  };
 
-  styles?: {
-    textDirection?: 'rtl' | 'ltr';
+  output?: {
+    schema: JSONSchema7;
   };
 }
+
+export type MessageTemplateDBModel = ChangePropsValueType<
+  MessageTemplateEntity,
+  '_environmentId' | '_organizationId' | '_creatorId' | '_layoutId' | '_feedId' | '_parentId'
+>;

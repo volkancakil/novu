@@ -1,211 +1,101 @@
-import { FormProvider } from 'react-hook-form';
-import { Grid, useMantineColorScheme } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { ChannelTypeEnum } from '@novu/shared';
-import { useNavigate, useParams } from 'react-router-dom';
-import styled from '@emotion/styled';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { ReactFlowProvider } from 'react-flow-renderer';
+import { useFormContext } from 'react-hook-form';
+
 import PageContainer from '../../../components/layout/components/PageContainer';
-import PageMeta from '../../../components/layout/components/PageMeta';
-import PageHeader from '../../../components/layout/components/PageHeader';
-import { TemplatesSideBar } from '../../../components/templates/TemplatesSideBar';
-import { NotificationSettingsForm } from '../../../components/templates/NotificationSettingsForm';
-import { useTemplateController } from '../../../components/templates/use-template-controller.hook';
-import { TemplateTriggerModal } from '../../../components/templates/TemplateTriggerModal';
-import { TemplateInAppEditor } from '../../../components/templates/in-app-editor/TemplateInAppEditor';
-import { TriggerSnippetTabs } from '../../../components/templates/TriggerSnippetTabs';
-import { AddChannelsPage } from './AddChannelsPage';
-import { Button, colors, Switch } from '../../../design-system';
-import { EmailMessagesCards } from '../../../components/templates/email-editor/EmailMessagesCards';
-import { TemplateSMSEditor } from '../../../components/templates/TemplateSMSEditor';
-import { useActiveIntegrations } from '../../../api/hooks';
-import { useStatusChangeControllerHook } from '../../../components/templates/use-status-change-controller.hook';
-import { useEnvController } from '../../../store/use-env-controller';
+import type { IForm } from '../components/formTypes';
+import WorkflowEditor from '../workflow/WorkflowEditor';
+import { useEnvController, usePrompt } from '../../../hooks';
+import { BlueprintModal } from '../components/BlueprintModal';
+import { TemplateEditorFormProvider, useTemplateEditorForm } from '../components/TemplateEditorFormProvider';
+import { ROUTES } from '../../../constants/routes.enum';
+import { TourProvider } from './TourProvider';
+import { NavigateValidatorModal } from '../components/NavigateValidatorModal';
+import { useTourStorage } from '../hooks/useTourStorage';
+import { useBasePath } from '../hooks/useBasePath';
 
-export default function TemplateEditorPage() {
-  const { templateId = '' } = useParams<{ templateId: string }>();
+function BaseTemplateEditorPage() {
   const navigate = useNavigate();
-  const { readonly, environment } = useEnvController();
-  const [activePage, setActivePage] = useState<string>('Settings');
-  const [channelButtons, setChannelButtons] = useState<string[]>([]);
-  const { integrations, loading: isIntegrationsLoading } = useActiveIntegrations();
-  const { colorScheme } = useMantineColorScheme();
+  const location = useLocation();
+  const { template, isCreating, onSubmit, onInvalid } = useTemplateEditorForm();
+  const { environment, chimera } = useEnvController({}, template?.chimera);
+  const methods = useFormContext<IForm>();
+  const { handleSubmit } = methods;
+  const tourStorage = useTourStorage();
+  const { templateId = '' } = useParams<{ templateId: string }>();
+  const isTouring = tourStorage.getCurrentTour('digest', templateId) > -1;
+  const basePath = useBasePath();
+  const [shouldRenderBlueprintModal, setShouldRenderBlueprintModal] = useState(false);
 
-  const handleAddChannel = (tabKey) => {
-    const foundChannel = channelButtons.find((item) => item === tabKey);
-    if (!foundChannel) {
-      changeSelectedMessage(tabKey);
-      setChannelButtons((prev) => [...prev, tabKey]);
-      setActivePage(tabKey);
+  const isCreateTemplatePage = location.pathname === ROUTES.WORKFLOWS_CREATE;
+
+  const [showNavigateValidatorModal, confirmNavigate, cancelNavigate] = usePrompt(
+    !methods.formState.isValid && !chimera && location.pathname !== ROUTES.WORKFLOWS_CREATE && !isTouring,
+    (nextLocation) => {
+      if (nextLocation.location.pathname.includes(basePath)) {
+        nextLocation.retry();
+
+        return false;
+      }
+
+      return true;
     }
-  };
-
-  const {
-    editMode,
-    template,
-    changeSelectedMessage,
-    isEmbedModalVisible,
-    trigger,
-    isLoading,
-    isUpdateLoading,
-    onSubmit,
-    loadingEditTemplate,
-    activeChannels,
-    toggleChannel,
-    onTriggerModalDismiss,
-    handleSubmit,
-    control,
-    emailMessagesFields,
-    inAppFields,
-    errors,
-    smsFields,
-    methods,
-    removeEmailMessage,
-    isDirty,
-    setIsDirty,
-  } = useTemplateController(templateId);
-
-  const { isTemplateActive, changeActiveStatus, isStatusChangeLoading } = useStatusChangeControllerHook(
-    templateId,
-    template
   );
 
-  useEffect(() => {
-    if (template) {
-      for (const key in activeChannels) {
-        if (activeChannels[key]) {
-          toggleChannel(ChannelTypeEnum[key], true);
-
-          setChannelButtons((prev) => [...prev, key]);
-        }
-      }
-    }
-  }, [template]);
+  const onSubmitHandler = async (data: IForm) => {
+    await onSubmit(data);
+  };
 
   useEffect(() => {
-    if (environment && template) {
-      if (environment._id !== template._environmentId && template._parentId) {
-        navigate(`/templates/edit/${template._parentId}`);
+    if (environment && template && template._environmentId) {
+      if (environment._id !== template._environmentId) {
+        navigate(ROUTES.WORKFLOWS);
       }
     }
-  }, [environment, template]);
+  }, [navigate, environment, template]);
 
-  if (isLoading) return null;
+  useEffect(() => {
+    const id = localStorage.getItem('blueprintId');
+    setShouldRenderBlueprintModal(!!id);
+  }, []);
+
+  if (environment && environment?.name === 'Production' && isCreateTemplatePage) {
+    navigate(ROUTES.WORKFLOWS);
+  }
+
+  if (isCreating) return null;
 
   return (
-    <PageContainer>
-      <PageMeta title={editMode ? template?.name : 'Create Template'} />
-      <FormProvider {...methods}>
-        <form name="template-form" onSubmit={handleSubmit(onSubmit)}>
-          <PageHeader
-            title={editMode ? 'Edit Template' : 'Create new template'}
-            actions={
-              <Grid align="center" gutter={50}>
-                {editMode && (
-                  <Grid.Col span={6}>
-                    <Switch
-                      label={isTemplateActive ? 'Enabled' : 'Disabled'}
-                      loading={isStatusChangeLoading}
-                      disabled={readonly}
-                      data-test-id="active-toggle-switch"
-                      onChange={(e) => changeActiveStatus(e.target.checked)}
-                      checked={isTemplateActive || false}
-                    />
-                  </Grid.Col>
-                )}
-                <Grid.Col span={6}>
-                  <Button
-                    mr={20}
-                    data-test-id="submit-btn"
-                    loading={isLoading || isUpdateLoading}
-                    disabled={readonly || loadingEditTemplate || isLoading || !isDirty}
-                    submit
-                  >
-                    {editMode ? 'Update' : 'Create'}
-                  </Button>
-                </Grid.Col>
-              </Grid>
-            }
-          />
-          <div style={{ marginLeft: 12, marginRight: 12, padding: 17.5, minHeight: 500 }}>
-            <Grid grow style={{ minHeight: 500 }}>
-              <Grid.Col md={4} sm={6}>
-                <SideBarWrapper dark={colorScheme === 'dark'} style={{ paddingRight: 50 }}>
-                  <TemplatesSideBar
-                    setIsDirty={setIsDirty}
-                    activeTab={activePage}
-                    toggleChannel={toggleChannel}
-                    changeTab={setActivePage}
-                    readonly={readonly}
-                    activeChannels={activeChannels}
-                    channelButtons={channelButtons}
-                    showTriggerSection={!!template && !!trigger}
-                    showErrors={methods.formState.isSubmitted && Object.keys(errors).length > 0}
-                  />
-                </SideBarWrapper>
-              </Grid.Col>
-              <Grid.Col md={8} sm={6}>
-                <div style={{ paddingLeft: 23 }}>
-                  {activePage === 'Settings' && <NotificationSettingsForm editMode={editMode} />}
-                  {activePage === 'Add' && (
-                    <AddChannelsPage channelButtons={channelButtons} handleAddChannel={handleAddChannel} />
-                  )}
-                  {!loadingEditTemplate && !isIntegrationsLoading ? (
-                    <div>
-                      {activePage === 'sms' &&
-                        smsFields.map((message, index) => {
-                          return (
-                            <TemplateSMSEditor
-                              key={index}
-                              control={control}
-                              index={index}
-                              errors={errors}
-                              isIntegrationActive={
-                                !!integrations?.some((integration) => integration.channel === ChannelTypeEnum.SMS)
-                              }
-                            />
-                          );
-                        })}
-                      {activePage === 'email' && (
-                        <EmailMessagesCards
-                          variables={trigger?.variables || []}
-                          onRemoveTab={removeEmailMessage}
-                          emailMessagesFields={emailMessagesFields}
-                          isIntegrationActive={
-                            !!integrations?.some((integration) => integration.channel === ChannelTypeEnum.EMAIL)
-                          }
-                        />
-                      )}
-                      {activePage === 'in_app' &&
-                        inAppFields.map((message, index) => {
-                          return <TemplateInAppEditor key={index} errors={errors} control={control} index={index} />;
-                        })}
-                    </div>
-                  ) : null}
-                  {template && trigger && activePage === 'TriggerSnippet' && <TriggerSnippetTabs trigger={trigger} />}
-                  {trigger && (
-                    <TemplateTriggerModal
-                      trigger={trigger}
-                      onDismiss={onTriggerModalDismiss}
-                      isVisible={isEmbedModalVisible}
-                    />
-                  )}
-                </div>
-              </Grid.Col>
-            </Grid>
-          </div>
+    <>
+      {!chimera && <TourProvider />}
+
+      <PageContainer title={template?.name ?? 'Create Template'}>
+        <form
+          name="template-form"
+          noValidate
+          onSubmit={handleSubmit(onSubmitHandler, onInvalid)}
+          style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr' }}
+        >
+          <ReactFlowProvider>
+            <WorkflowEditor />
+          </ReactFlowProvider>
         </form>
-      </FormProvider>
-    </PageContainer>
+      </PageContainer>
+      {shouldRenderBlueprintModal && <BlueprintModal />}
+      <NavigateValidatorModal
+        isOpen={showNavigateValidatorModal}
+        onConfirm={confirmNavigate}
+        onCancel={cancelNavigate}
+      />
+    </>
   );
 }
 
-const SideBarWrapper = styled.div<{ dark: boolean }>`
-  border-right: 1px solid ${({ dark }) => (dark ? colors.B20 : colors.BGLight)};
-  height: 100%;
-`;
-
-const EditorContentWrapper = styled.div`
-  margin-top: 20px;
-  display: flex;
-  width: 100%;
-`;
+export default function TemplateEditorPage() {
+  return (
+    <TemplateEditorFormProvider>
+      <BaseTemplateEditorPage />
+    </TemplateEditorFormProvider>
+  );
+}
